@@ -3,9 +3,12 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <vector>
+#include <cmath>
+#include <limits>
+#include <algorithm>
 
 using namespace std;
-
 
 
 int main()  {
@@ -15,13 +18,14 @@ int main()  {
     string dataSetGiven = "tile2Test.txt";
     ifstream fileCont;
     //CS170_Small_Data__55.txt
-    //fileCont.open("CS170_Small_Data__55.txt");
-    fileCont.open("tile2Test.txt");
+    fileCont.open("CS170_Small_Data__55.txt");
+    //fileCont.open("tile2Test.txt");
     if (!fileCont.is_open())   {
         cout << "File failed to open" << endl;
     }
     vector<vector<double>> dataSet;
     string dataLine;
+    bool firstRunDone = false;
 
     while (getline(fileCont, dataLine))  {
         stringstream s(dataLine);
@@ -29,14 +33,33 @@ int main()  {
         vector<double> row;
         while (s >> dataVal)   {
             row.push_back(dataVal);
-            cout << dataVal << endl;
         }
+        firstRunDone = true;
         dataSet.push_back(row);
     }
 
     fileCont.close();
-    int vectorSize = dataSet.size();
-    cout << vectorSize << endl;
+    int numRows = dataSet.size();
+    //cout << numRows << endl;               // ----for testing----
+
+    int numFeatures = dataSet[0].size() - 1;    //number of columns of feater data (not including classification)
+    //cout << "numFeatures: " << numFeatures << endl;               // ----for testing----
+
+    vector<double> Y(numRows);
+    vector<vector<double>> X(numRows, vector<double>(numFeatures));
+
+    for (int i = 0; i < numRows; ++i) {
+        Y[i] = dataSet[i][0]; 
+        for (int j = 0; j < numFeatures; ++j) {
+            X[i][j] = dataSet[i][j + 1]; 
+        }
+    }
+
+    cout << "numFeatures: " << numFeatures << endl;
+    cout << "total instances: " << numRows << endl;
+    // vector<vector<double>> featureSet;
+    // for (int i = 1; i < )
+
 
     // string fileContent((istreambuf_iterator<char>(fileCont)),
     //                    istreambuf_iterator<char>());
