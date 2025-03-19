@@ -7,13 +7,15 @@
 #include <cmath>
 #include <limits>
 #include <algorithm>
+#include <map>
 
 using namespace std;
 
+double oneOutVal(vector<vector<double>>, vector<int>, double);
+
+double nnFinder(vector<vector<double>>, vector<int>, double, int);
 
 int main()  {
-
-
     cout << "selecting data set for testing... " << endl;
     string dataSetGiven = "tile2Test.txt";
     ifstream fileCont;
@@ -40,109 +42,69 @@ int main()  {
 
     fileCont.close();
     int numRows = dataSet.size();
-    //cout << numRows << endl;               // ----for testing----
-
     int numFeatures = dataSet[0].size() - 1;    //number of columns of feater data (not including classification)
-    //cout << "numFeatures: " << numFeatures << endl;               // ----for testing----
 
-    vector<double> Y(numRows);
-    vector<vector<double>> X(numRows, vector<double>(numFeatures));
-
+    vector<double> classClassifications(numRows);
+    vector<vector<double>> featureCreatures(numRows, vector<double>(numFeatures));
     for (int i = 0; i < numRows; ++i) {
-        Y[i] = dataSet[i][0]; 
-        for (int j = 0; j < numFeatures; ++j) {
-            X[i][j] = dataSet[i][j + 1]; 
+        classClassifications[i] = dataSet[i][0]; 
+        //cout << dataSet[i][0] << endl;        //----for testing----
+        for (int j = 1; j < dataSet[i].size(); ++j) {
+            featureCreatures[i][j-1] = dataSet[i][j]; 
+            //cout << dataSet[i][j] << endl;        //----for testing----
         }
     }
-
+    //cout << featureCreatures.size() << endl;
+    //cout << Y.size() << endl;
     cout << "numFeatures: " << numFeatures << endl;
     cout << "total instances: " << numRows << endl;
-    // vector<vector<double>> featureSet;
-    // for (int i = 1; i < )
+    double numFileRows = dataSet.size();
 
-
-    // string fileContent((istreambuf_iterator<char>(fileCont)),
-    //                    istreambuf_iterator<char>());
-
-    // Close the file (optional here since the file will be
-    // closed automatically when file goes out of scope)
-    // fileCont.close();
-
-    // // Output the file content to the console
-    // cout << "File content:\n" << fileContent << endl;
-    // cout << "finished opening/loading data Set successfully" << endl;
+    vector<int> onlyFeatureCreatures(numFeatures);
+    for (int i = 0; i < numFeatures; i++) {
+        onlyFeatureCreatures[i] = i + 1;
+    }
     
-
-
+    double baseAccuracy = oneOutVal(dataSet, onlyFeatureCreatures, numFileRows);  // Use all features for the first run
+    cout << "Running nearest neighbor with all " << numFeatures << " features, using 'leaving-one-out' evaluation, I get an accuracy of " << baseAccuracy * 100 << "%" << endl;
 
     return 0;
 }
 
-
-
-/*
-        --------------------------- pseudo code provided by professor Eamonn Keogh
-
-
-
-    funtion accuracy = leave_one_out_cross_validation( data, current_set, feature_to_add)   {
-    accuracy = rand;
-
-}
-
-
-
-
-function feature_search_demo(data)   {
-    current_set_of_features = [];
-
-    for int i = 1; i < size(data,2)-1; i++)   {
-        disp(['On the ', num2str(i),'th level of the search tree'])
-        feature_to_add_at_this_level = [];
-        best_so_far_accuracy = 0;
-        for k = 1: size(data,2)-1
-            if isempty(intersect(current_set_of_features,k))
-                disp(['--considering adding the ', num2str(k), ' feature'])
-                accuracy = leave_one_out_cross_validation(data, current_set_of_features, k+1);
-                
-                if accuracy > best_so_far_accuracy
-                    best_so_far_accuracy = accuracy;
-                    feature_to_add_at_this_level = k;
-
-        disp(['On level ', num2str(i),' i added feature ', num2str(feature_to_add_at_this_level), ' to current set'])
-}
+double oneOutVal(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, double numFileRows)   {
+    double match = 0.0;
+    double neighVal;
+    int rowVal;
+    for (int i = 0; i < numFileRows; i++)   {
+        rowVal = i;
+        neighVal = nnFinder(dataSet, onlyFeatureCreatures, numFileRows, rowVal);
+        if (dataSet[neighVal][0] == dataSet[rowVal][0])   {
+            match++;
+        }
     }
+        return (match / numFileRows);
 }
 
-
-
-
-//         ---------------------------- VALIDATOR FUNCTION -------------------------------
-
-function accuracy = leave_one_out_validation(data,current_set, feature_to_add)
-
-number_correctly_classified = 0;
-
-for i = 1 : size(data,1)
-    object_to_classify = data(i,2:end);
-    label_object_to_classify = data(i,1);
-
-    nearest_neighbor_distance = numeric_limits<int>::max(); //inf;
-    nearest_neighbor_location = numeric_limits<int>::max(); //inf;
-    for k = 1 : size(data,1)
-        if k != 1
-            distance = sqrt(sum((object_to_classify - data(k,2:end)).^2));
-            if distance < nearest_neighbor_distance
-                nearest_neighbor_distance = distance;
-                nearest_neighbor_location = k;
-                nearest_neighbor_label = data(nearest_neighbor_location,1);
-
-    if label_object_to_classify == nearest_neighbor_label;
-        number_correctly_classified = number_correctly_classified + 1;
-
-accuracy = number_correctly_classified / size(data,1);
-
-
-
-
-*/
+double nnFinder(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, double numFileRows, int rowVal)   {
+    double nnDistance = numeric_limits<int>::max(); //inf;
+    double nnLocation = numeric_limits<int>::max(); //inf;
+    double euclidDistance = 0.0;
+    
+    for (int i = 0; i < numFileRows; i++)   {
+        if (i != rowVal)   {
+            //vector<int> = all_[i];
+            for (int j = 1; j < onlyFeatureCreatures.size(); j++)   {   
+                // cout << "1" << endl;
+                euclidDistance += pow((dataSet[i][onlyFeatureCreatures[j]] - dataSet[rowVal][onlyFeatureCreatures[j]]), 2);
+            }
+        euclidDistance = sqrt(euclidDistance);
+        //cout << euclidDistance << endl;
+        }
+        if (euclidDistance < nnDistance)  {
+        nnDistance = euclidDistance;
+        nnLocation = i;
+        }
+    }
+    return nnLocation;
+}
+ 
