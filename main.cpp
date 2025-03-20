@@ -63,7 +63,7 @@ int main()  {
     double firstAcc = returnAccuracy(dataSet, onlyFeatureCreatures, 0);
     cout << firstAcc * 100 << '%' << endl;
     cout << endl;
-    cout << "Begininning search.\n";
+    cout << "Beginning search.\n";
     if (userChoice == 1)   {
         forwardSelectionAlgo(dataSet, numColAct);
     }
