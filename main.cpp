@@ -10,29 +10,31 @@
 
 using namespace std;
 
-double oneOutVal(vector<vector<double>>, vector<int>, double);
-
-double nnFinder(vector<vector<double>>, vector<int>, double, int);
+//void forwardSelectionAlgo(vector<vector<double>>, int, int);
+double returnAccuracy(vector<vector<double>>, vector<int>, int);    //will be used 2 determine accuracy/testing
 
 int main()  {
     cout << "selecting data set for testing... " << endl;
-    string dataSetGiven = "tile2Test.txt";
     ifstream fileCont;
-    //CS170_Small_Data__55.txt
-    fileCont.open("CS170_Small_Data__55.txt");
-    //fileCont.open("tile2Test.txt");
+    //fileCont.open("CS170_Small_Data__55.txt");
+    //fileCont.open("CS170_Large_Data__17.txt");
+    fileCont.open("CS170_Large_Data__12.txt");
     if (!fileCont.is_open())   {
         cout << "File failed to open" << endl;
     }
     vector<vector<double>> dataSet;
     string dataLine;
     bool firstRunDone = false;
+    int numColAct = -1;
 
     while (getline(fileCont, dataLine))  {
         stringstream s(dataLine);
         double dataVal;
         vector<double> row;
         while (s >> dataVal)   {
+            if (!firstRunDone)   {
+                numColAct++;
+            }
             row.push_back(dataVal);
         }
         firstRunDone = true;
@@ -40,70 +42,74 @@ int main()  {
     }
 
     fileCont.close();
-    int numRows = dataSet.size();
-    int numFeatures = dataSet[0].size() - 1;    //number of columns of feater data (not including classification)
+    int numFileRows = dataSet.size();
 
-    vector<double> classClassifications(numRows);
-    vector<vector<double>> featureCreatures(numRows, vector<double>(numFeatures));
-    for (int i = 0; i < numRows; ++i) {
-        classClassifications[i] = dataSet[i][0]; 
-        //cout << dataSet[i][0] << endl;        //----for testing----
-        for (int j = 1; j < dataSet[i].size(); ++j) {
-            featureCreatures[i][j-1] = dataSet[i][j]; 
-            //cout << dataSet[i][j] << endl;        //----for testing----
-        }
-    }
-    //cout << featureCreatures.size() << endl;
-    //cout << Y.size() << endl;
-    cout << "numFeatures: " << numFeatures << endl;
-    cout << "total instances: " << numRows << endl;
-    double numFileRows = dataSet.size();
+    vector<double> classClassifications(numFileRows);
+    vector<vector<double>> featureCreatures(numFileRows, vector<double>(numColAct));
 
-    vector<int> onlyFeatureCreatures(numFeatures);
-    for (int i = 0; i < numFeatures; i++) {
-        onlyFeatureCreatures[i] = i + 1;
-    }
-    
-    double baseAccuracy = oneOutVal(dataSet, onlyFeatureCreatures, numFileRows);  // Use all features for the first run
-    cout << "Running nearest neighbor with all " << numFeatures << " features, using 'leaving-one-out' evaluation, I get an accuracy of " << baseAccuracy * 100 << "%" << endl;
+    vector<int> onlyFeatureCreatures = {26, 38};    //row numbers - 26, 38    18, 40
+    //onlyFeatureCreaturs.push_back(26);
+    // for (int i = 0; i < numColAct; i++) {
+    //     onlyFeatureCreatures[i] = i + 1;
+    // }
+    cout << onlyFeatureCreatures.size() << endl;
+    int newFeat = 0; // - 38
+
+    double baseAccuracy = returnAccuracy(dataSet, onlyFeatureCreatures, newFeat);  // Use all features for the first run
+    cout << "nearest neighbor w/: " << numColAct << " total features, 'leaving-one-out' gives accuracy: " << baseAccuracy * 100 << "%" << endl;
+
+    // cout << "Enter '1' to run forward Selection Algorithm: " << endl;
+    // int userChoice;
+    // cin >> userChoice;
+    // cout << endl;
+    // if (userChoice == 1)   {
+    //     forwardSelectionAlgo(dataSet, numFeatures, numFileRows);
+
+    // }
 
     return 0;
 }
 
-double oneOutVal(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, double numFileRows)   {
+double returnAccuracy(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, int newFeat)   {                                                   
+    //used 2 determine accuracy/testing  
+    //heavily references pseudo/matlab code given by professor Eamonn Keogh that was provided in video                                                                                       
     double match = 0.0;
-    double neighVal;
-    int rowVal;
-    for (int i = 0; i < numFileRows; i++)   {
-        rowVal = i;
-        neighVal = nnFinder(dataSet, onlyFeatureCreatures, numFileRows, rowVal);
-        if (dataSet[neighVal][0] == dataSet[rowVal][0])   {
+    if (newFeat != 0)   {                                           //mainly here for testing, should prolly take out l8tr
+        onlyFeatureCreatures.push_back(newFeat);
+    }
+
+    for (int i = 0; i < dataSet.size(); i++)   {                    
+        vector<double> neighVal;
+        int neighLabel = dataSet[i][0]; 
+        for (int t : onlyFeatureCreatures)   {                      //comparison point(s) for distance check l8tr
+            neighVal.push_back(dataSet[i][t]);
+        }
+
+        double nnDistance = numeric_limits<double>::infinity();     //had to make double type
+        int nnLocation = numeric_limits<int>::max();
+        int nnLabel = 0;                                            //for keeping trak of label of nn
+    
+        for (int j = 0; j < dataSet.size(); j++)   {
+            if (j != i)   {  
+                vector<double> nn;
+                double euclidDistance = 0.0;
+                for (int k : onlyFeatureCreatures)   {              //compare data across feature to find nn in euclidDist
+                    nn.push_back(dataSet[j][k]);
+                }
+                for (int q = 0; q < neighVal.size(); q++) {
+                    euclidDistance += pow(neighVal[q] - nn[q], 2);        //euclidDist finder
+                }
+                euclidDistance = sqrt(euclidDistance);
+                if (euclidDistance < nnDistance)   {
+                    nnDistance = euclidDistance;
+                    nnLocation = j;
+                    nnLabel = dataSet[nnLocation][0]; 
+                }
+            }
+        }
+        if (neighLabel == nnLabel)   {
             match++;
         }
     }
-        return (match / numFileRows);
+    return (match / dataSet.size());           //accuracy given as 0.XXX cuz why not
 }
-
-double nnFinder(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, double numFileRows, int rowVal)   {
-    double nnDistance = numeric_limits<int>::max(); //inf;
-    double nnLocation = numeric_limits<int>::max(); //inf;
-    double euclidDistance = 0.0;
-    
-    for (int i = 0; i < numFileRows; i++)   {
-        if (i != rowVal)   {
-            //vector<int> = all_[i];
-            for (int j = 1; j < onlyFeatureCreatures.size(); j++)   {   
-                // cout << "1" << endl;
-                euclidDistance += pow((dataSet[i][onlyFeatureCreatures[j]] - dataSet[rowVal][onlyFeatureCreatures[j]]), 2);
-            }
-        euclidDistance = sqrt(euclidDistance);
-        //cout << euclidDistance << endl;
-        }
-        if (euclidDistance < nnDistance)  {
-        nnDistance = euclidDistance;
-        nnLocation = i;
-        }
-    }
-    return nnLocation;
-}
- 
