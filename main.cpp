@@ -7,8 +7,10 @@
 #include <limits>
 #include <algorithm>
 #include <map>
+#include <chrono>   //for time
 
 using namespace std;
+using namespace std::chrono;
 
 void forwardSelectionAlgo(vector<vector<double>>, int);
 
@@ -64,6 +66,7 @@ int main()  {
     cout << firstAcc * 100 << '%' << endl;
     cout << endl;
     cout << "Beginning search.\n";
+    auto start = high_resolution_clock::now();
     if (userChoice == 1)   {
         forwardSelectionAlgo(dataSet, numColAct);
     }
@@ -73,6 +76,10 @@ int main()  {
     else   {
         cout << "not valid search option, try again\n";
     }
+    auto end = high_resolution_clock::now();
+    auto duration = duration_cast<seconds>(end - start);
+    cout << endl;
+    cout << "Function execution time: " << duration.count() << " seconds." << endl;
     return 0;
 }
 
