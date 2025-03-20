@@ -10,15 +10,21 @@
 
 using namespace std;
 
-//void forwardSelectionAlgo(vector<vector<double>>, int, int);
-double returnAccuracy(vector<vector<double>>, vector<int>, int);    //will be used 2 determine accuracy/testing
+void forwardSelectionAlgo(vector<vector<double>>, int);
+
+double returnAccuracy(vector<vector<double>>, vector<int>, int);    //used 2 determine accuracy/testing
 
 int main()  {
-    cout << "selecting data set for testing... " << endl;
+    cout << "Welcome to Alexis Stephens' Feature Selection Algorithm." << endl;
+    cout << "Type in the name of the file to test: ";
+    string fileName;
+    cin >> fileName;
+    cout << endl;
     ifstream fileCont;
+    fileCont.open(fileName);
     //fileCont.open("CS170_Small_Data__55.txt");
-    //fileCont.open("CS170_Large_Data__17.txt");
-    fileCont.open("CS170_Large_Data__12.txt");
+    //fileCont.open("CS170_Large_Data__55.txt");
+    //fileCont.open("CS170_Large_Data__12.txt");
     if (!fileCont.is_open())   {
         cout << "File failed to open" << endl;
     }
@@ -27,7 +33,7 @@ int main()  {
     bool firstRunDone = false;
     int numColAct = -1;
 
-    while (getline(fileCont, dataLine))  {
+    while (getline(fileCont, dataLine))   {          //file openned/data pushed into vector fro use + # of features!
         stringstream s(dataLine);
         double dataVal;
         vector<double> row;
@@ -47,27 +53,106 @@ int main()  {
     vector<double> classClassifications(numFileRows);
     vector<vector<double>> featureCreatures(numFileRows, vector<double>(numColAct));
 
-    vector<int> onlyFeatureCreatures = {26, 38};    //row numbers - 26, 38    18, 40
-    //onlyFeatureCreaturs.push_back(26);
-    // for (int i = 0; i < numColAct; i++) {
-    //     onlyFeatureCreatures[i] = i + 1;
-    // }
-    cout << onlyFeatureCreatures.size() << endl;
+    vector<int> onlyFeatureCreatures; // = {26, 38};    //row numbers - 26, 38    18, 40
     int newFeat = 0; // - 38
 
-    double baseAccuracy = returnAccuracy(dataSet, onlyFeatureCreatures, newFeat);  // Use all features for the first run
-    cout << "nearest neighbor w/: " << numColAct << " total features, 'leaving-one-out' gives accuracy: " << baseAccuracy * 100 << "%" << endl;
-
-    // cout << "Enter '1' to run forward Selection Algorithm: " << endl;
-    // int userChoice;
-    // cin >> userChoice;
-    // cout << endl;
-    // if (userChoice == 1)   {
-    //     forwardSelectionAlgo(dataSet, numFeatures, numFileRows);
-
-    // }
-
+    cout << "Type the number of the algorithm you want to run." << endl;
+    cout << "1) Forward Selection\n" << "2) Backward Elimination\n";
+    int userChoice;
+    cin >> userChoice;
+    cout << endl;
+    cout << "This dataset has " << numColAct << " features (not including the class attribute), with " << dataSet.size() << " instances.\n";
+    cout << "Running nearest neighbor with all " << numColAct << " features, using \"leaving-one-out\" evaluation, I get an accuracy of ";
+    double firstAcc = returnAccuracy(dataSet, onlyFeatureCreatures, 0);
+    cout << firstAcc * 100 << '%' << endl;
+    cout << endl;
+    cout << "Begininning search.\n";
+    if (userChoice == 1)   {
+        forwardSelectionAlgo(dataSet, numColAct);
+    }
     return 0;
+}
+
+void forwardSelectionAlgo(vector<vector<double>>dataSet, int numCol)   {
+    vector<int> endFeatures, featuresCurr;
+    double bestAccuracy = 0.0;
+
+    for (int i = 1; i < numCol + 1; i++)   {
+        double singleLVLAcc = 0;
+        int singleLVLFeature = 0;
+        for (int k = 1; k < numCol + 1; k++)   {        //checking if feature is here already
+            bool found = false;
+            for (int t : featuresCurr)   {
+                if (t == k)   {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)   {
+                double featureAccuracy = returnAccuracy(dataSet, featuresCurr, k);     //k being the feature/cloumn we gotta iterate through
+                vector<int> viewFeatures = featuresCurr;
+                viewFeatures.push_back(k);
+                int printCount = featuresCurr.size() - 1;
+                if (featuresCurr.size() != 0)   {
+                    cout << "\tUsing feature(s) {";
+                    for (int q : featuresCurr)   {
+                        if (printCount == 0)   {
+                            cout << q << "} ";
+                        }
+                        else   {
+                            cout << q << ",";
+                        }
+                        printCount--;
+                    }
+                    cout << "accuracy is " << featureAccuracy * 100 << "%" << endl;
+                }
+                if (singleLVLAcc < featureAccuracy)   {
+                    singleLVLAcc = featureAccuracy;
+                    singleLVLFeature = k;
+                }
+            }
+        }
+        cout << endl;
+        featuresCurr.push_back(singleLVLFeature);
+        if (featuresCurr.size() != 0)   {
+            cout << "Feature set {";
+            //bool start = false;
+            int printCnt = featuresCurr.size() - 1;
+
+            for (int y : featuresCurr)   {
+                if (printCnt == 0)  {
+                    cout << y << "} ";
+                }
+                else   {
+                    cout << y << ",";
+                }
+                printCnt--;
+            }
+            cout << "was best, accuracy is " << singleLVLAcc * 100 << "%" << endl;
+        if (singleLVLAcc > bestAccuracy)   {
+            bestAccuracy = singleLVLAcc;
+            endFeatures = featuresCurr;
+        }
+        if (singleLVLAcc < bestAccuracy)   {
+            if (featuresCurr.size() != numCol)   {
+                cout << "(Warning, Accuracy has decreased! Continuing search in case of local maxima)" << endl;
+            }
+        }
+        cout << endl;
+        }
+    }
+    cout << "Finished search!! The best feature subset is {";
+    int out = endFeatures.size() - 1;
+    for (int r : endFeatures) {
+        if (out == 0)   {
+            cout << r << "} ";
+        }
+        else   {
+            cout << r << ",";
+        }
+        out--;
+    }
+    cout << "which has an accuracy of " << bestAccuracy * 100 << "%" << endl;
 }
 
 double returnAccuracy(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, int newFeat)   {                                                   
@@ -96,7 +181,7 @@ double returnAccuracy(vector<vector<double>> dataSet, vector<int> onlyFeatureCre
                 for (int k : onlyFeatureCreatures)   {              //compare data across feature to find nn in euclidDist
                     nn.push_back(dataSet[j][k]);
                 }
-                for (int q = 0; q < neighVal.size(); q++) {
+                for (int q = 0; q < neighVal.size(); q++)   {
                     euclidDistance += pow(neighVal[q] - nn[q], 2);        //euclidDist finder
                 }
                 euclidDistance = sqrt(euclidDistance);
