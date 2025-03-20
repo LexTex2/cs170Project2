@@ -12,6 +12,8 @@ using namespace std;
 
 void forwardSelectionAlgo(vector<vector<double>>, int);
 
+void backwardEliminationAlgo(vector<vector<double>>, int);
+
 double returnAccuracy(vector<vector<double>>, vector<int>, int);    //used 2 determine accuracy/testing
 
 int main()  {
@@ -48,13 +50,8 @@ int main()  {
     }
 
     fileCont.close();
-    int numFileRows = dataSet.size();
 
-    vector<double> classClassifications(numFileRows);
-    vector<vector<double>> featureCreatures(numFileRows, vector<double>(numColAct));
-
-    vector<int> onlyFeatureCreatures; // = {26, 38};    //row numbers - 26, 38    18, 40
-    int newFeat = 0; // - 38
+    vector<int> onlyFeatureCreatures; // = {26, 38};    //row numbers - 26, 38    18, 40        //int newFeat = 0; // - 38   <-- used for testing
 
     cout << "Type the number of the algorithm you want to run." << endl;
     cout << "1) Forward Selection\n" << "2) Backward Elimination\n";
@@ -69,6 +66,12 @@ int main()  {
     cout << "Begininning search.\n";
     if (userChoice == 1)   {
         forwardSelectionAlgo(dataSet, numColAct);
+    }
+    else if (userChoice == 2)   {
+        backwardEliminationAlgo(dataSet, numColAct);
+    }
+    else   {
+        cout << "not valid search option, try again\n";
     }
     return 0;
 }
@@ -113,14 +116,14 @@ void forwardSelectionAlgo(vector<vector<double>>dataSet, int numCol)   {
             }
         }
         cout << endl;
-        featuresCurr.push_back(singleLVLFeature);
+        featuresCurr.push_back(singleLVLFeature);               //saving feature for print/in process of finding best Acc, and to note loss of best
         if (featuresCurr.size() != 0)   {
             cout << "Feature set {";
             //bool start = false;
             int printCnt = featuresCurr.size() - 1;
 
             for (int y : featuresCurr)   {
-                if (printCnt == 0)  {
+                if (printCnt == 0)   {
                     cout << y << "} ";
                 }
                 else   {
@@ -141,9 +144,9 @@ void forwardSelectionAlgo(vector<vector<double>>dataSet, int numCol)   {
         cout << endl;
         }
     }
-    cout << "Finished search!! The best feature subset is {";
+    cout << "Finished search!! The best feature subset is {";       //add  \n to start of FINISH
     int out = endFeatures.size() - 1;
-    for (int r : endFeatures) {
+    for (int r : endFeatures)   {
         if (out == 0)   {
             cout << r << "} ";
         }
@@ -153,6 +156,74 @@ void forwardSelectionAlgo(vector<vector<double>>dataSet, int numCol)   {
         out--;
     }
     cout << "which has an accuracy of " << bestAccuracy * 100 << "%" << endl;
+}
+
+void backwardEliminationAlgo(vector<vector<double>>dataSet, int numCol)   {
+    //inverted version of Feature search, with delete/erase function
+    vector<int> fullFeature(numCol);
+
+    for (int i = 0; i < numCol; i++)   {                                    //should b filling vector with feature values only
+        fullFeature[i] = i + 1;  
+    }
+
+    double bestAccuracy = returnAccuracy(dataSet, fullFeature, 0);         //initial accuracy, could be passed in for better runtime, but eh
+    vector<int> featuresCurr = fullFeature;
+    for (int i = 0; i < numCol; i++)   {
+        double singleLVLAcc = 0.0;
+        int singLVLBadFeat = numeric_limits<int>::max();
+
+        for (int k = 0; k < featuresCurr.size(); k++)   {
+            int yoinkedFeature = featuresCurr[k];
+            featuresCurr.erase(featuresCurr.begin() + k);                           //yoink k/feature from set
+
+            double accuracy = returnAccuracy(dataSet, featuresCurr, 0);             //find new accuracy
+            if (featuresCurr.size() != 0)   {
+            cout << "\tUsing feature(s) {";
+            int printCount = featuresCurr.size() - 1;
+            for (int q : featuresCurr)   {
+                if (printCount == 0)   {
+                    cout << q << "} ";
+                }
+                else   {
+                    cout << q << ",";
+                }
+                printCount--;
+            }
+            cout << "accuracy is " << accuracy * 100 << "%" << endl;
+        }
+            featuresCurr.insert(featuresCurr.begin() + k, yoinkedFeature);      //keeping track of deleted bit (yoinkedFeature from above), saving prev incase good
+            if (accuracy > singleLVLAcc)   {
+                singleLVLAcc = accuracy;
+                singLVLBadFeat = yoinkedFeature;
+            }
+        }
+        cout << endl;
+
+        if (singLVLBadFeat != numeric_limits<int>::max())   {
+            featuresCurr.erase(remove(featuresCurr.begin(), featuresCurr.end(), singLVLBadFeat), featuresCurr.end());
+            cout << "Removing feature {" << singLVLBadFeat << "} from feature set was best, accuracy is " << singleLVLAcc * 100 << "%" << endl;
+        }
+        if (bestAccuracy < singleLVLAcc)   {
+            bestAccuracy = singleLVLAcc;
+            fullFeature = featuresCurr;
+        } else if (bestAccuracy > singleLVLAcc)   {
+            if (featuresCurr.size() > 0)   {
+                cout << "(Warning, accuracy has decreased! Continuing search in case of local maxima)" << endl;
+            }
+        }
+    }
+    cout << "\nFinished search!! The best feature subset is {";
+    int out = fullFeature.size() - 1;
+    for (int r : fullFeature)   {
+        if (out == 0)   {
+            cout << r << "} ";
+        }
+        else   {
+            cout << r << ",";
+        }
+        out--;
+    }
+    cout << "with an accuracy of " << bestAccuracy * 100 << "%" << endl;
 }
 
 double returnAccuracy(vector<vector<double>> dataSet, vector<int> onlyFeatureCreatures, int newFeat)   {                                                   
